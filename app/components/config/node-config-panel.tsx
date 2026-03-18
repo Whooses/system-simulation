@@ -91,7 +91,7 @@ export default function NodeConfigPanel({ nodeId, nodeType, config, onConfigChan
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex flex-col gap-4">
           {fields.map((field) => {
-            const value = (config as Record<string, unknown>)[field.key];
+            const value = (config as unknown as Record<string, unknown>)[field.key];
             return (
               <div key={field.key} className="flex flex-col gap-1">
                 <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{field.label}</label>

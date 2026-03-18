@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, DragEvent } from "react";
-import { useNodesState, useEdgesState, addEdge, type Connection as RFConnection, type Node as RFNode } from "@xyflow/react";
+import { useState, useCallback, useRef, useEffect, DragEvent } from "react";
+import { useNodesState, useEdgesState, addEdge, type Connection as RFConnection, type Node as RFNode, type Edge as RFEdge } from "@xyflow/react";
 import SimulationCanvas from "./components/canvas/simulation-canvas";
 import NodePalette from "./components/palette/node-palette";
 import Toolbar from "./components/toolbar/toolbar";
@@ -12,15 +12,15 @@ import { getNodeDefinition, NODE_DEFINITIONS } from "@/lib/node-defaults";
 import { NodeType, type Scenario, type NodeConfig } from "@/lib/engine/models";
 
 export default function Home() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([] as RFNode[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([] as RFEdge[]);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { connected, state, connect, start, stop, pause, resume, setSpeed, send } = useSimulation();
 
   // Connect WS on mount
-  useState(() => { connect(); });
+  useEffect(() => { connect(); }, [connect]);
 
   const onConnect = useCallback((connection: RFConnection) => {
     setEdges((eds) => addEdge({ ...connection, type: "animated" }, eds));

@@ -29,9 +29,9 @@ export default function TransactionLog({ transactions, onRowClick }: Transaction
           <div key={tx.id + i}
             className="grid cursor-pointer grid-cols-[80px_100px_100px_60px_1fr_60px_50px] gap-2 border-b border-zinc-900 px-3 py-1 text-[10px] text-zinc-400 hover:bg-zinc-800/50"
             onClick={() => onRowClick?.(tx)}>
-            <span className="text-zinc-500">{tx.metadata?.timestamp ?? "—"}</span>
-            <span>{tx.metadata?.source ?? "—"}</span>
-            <span>{tx.metadata?.target ?? "—"}</span>
+            <span className="text-zinc-500">{String(tx.metadata?.timestamp ?? "—")}</span>
+            <span>{String(tx.metadata?.source ?? "—")}</span>
+            <span>{String(tx.metadata?.target ?? "—")}</span>
             <span>{tx.protocol}</span>
             <span className="truncate">{tx.message.method} {tx.message.path}</span>
             <span>{tx.result?.latency?.toFixed(1) ?? "—"}ms</span>
