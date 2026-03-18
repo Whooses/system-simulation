@@ -55,7 +55,7 @@ interface Event {
   type: EventType;
   sourceNodeId: string;
   targetNodeId: string;
-  transaction: Transaction;
+  transaction: Transaction | null; // null for internal control events (HEALTH_CHECK, CIRCUIT_*, etc.)
 }
 ```
 
