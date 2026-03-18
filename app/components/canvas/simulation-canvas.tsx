@@ -7,10 +7,12 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import SimNode from "./sim-node";
+import AnimatedEdge from "./animated-edge";
 
 const initialNodes: RFNode[] = [];
 const initialEdges: RFEdge[] = [];
 const nodeTypes = { simNode: SimNode };
+const edgeTypes = { animated: AnimatedEdge };
 
 export default function SimulationCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -26,7 +28,7 @@ export default function SimulationCanvas() {
       <ReactFlow
         nodes={nodes} edges={edges}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-        onConnect={onConnect} fitView nodeTypes={nodeTypes}
+        onConnect={onConnect} fitView nodeTypes={nodeTypes} edgeTypes={edgeTypes} defaultEdgeOptions={{ type: "animated" }}
       >
         <Controls />
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
