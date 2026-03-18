@@ -31,10 +31,28 @@ A min-heap priority queue sorted by simulated timestamp. Each event represents s
 ### Event Structure
 
 ```typescript
+enum EventType {
+  REQUEST_ARRIVE    = "REQUEST_ARRIVE",     // a request reaches a node
+  PROCESS_COMPLETE  = "PROCESS_COMPLETE",   // a node finishes processing
+  RESPONSE          = "RESPONSE",           // a response sent back to caller
+  CACHE_HIT         = "CACHE_HIT",          // cache lookup succeeded
+  CACHE_MISS        = "CACHE_MISS",         // cache lookup failed
+  TIMEOUT           = "TIMEOUT",            // a request timed out
+  FAILURE           = "FAILURE",            // a node crash or injected failure
+  HEALTH_CHECK      = "HEALTH_CHECK",       // periodic health probe
+  HEALTH_RESULT     = "HEALTH_RESULT",      // health check response
+  QUEUE_ENQUEUE     = "QUEUE_ENQUEUE",      // message added to a queue
+  QUEUE_DEQUEUE     = "QUEUE_DEQUEUE",      // consumer picks up a message
+  CIRCUIT_OPEN      = "CIRCUIT_OPEN",       // circuit breaker tripped
+  CIRCUIT_HALF_OPEN = "CIRCUIT_HALF_OPEN",  // circuit breaker probing
+  CIRCUIT_CLOSE     = "CIRCUIT_CLOSE",      // circuit breaker recovered
+  RETRY             = "RETRY",              // a retry attempt
+}
+
 interface Event {
   id: string;
   timestamp: number;           // simulated time in ms
-  type: EventType;             // REQUEST_ARRIVE, PROCESS_COMPLETE, TIMEOUT, FAILURE, etc.
+  type: EventType;
   sourceNodeId: string;
   targetNodeId: string;
   transaction: Transaction;
@@ -43,7 +61,7 @@ interface Event {
 
 ### Transaction (Core Primitive)
 
-Every interaction between two nodes is a transaction containing a message, a protocol, and a result.
+Every interaction between two nodes is a transaction containing a message, a protocol, and a result. Note: "transaction" here means a request-response pair between two nodes, not a database/ACID transaction.
 
 ```typescript
 interface Transaction {
@@ -56,14 +74,33 @@ interface Transaction {
 }
 ```
 
+### SimContext
+
+The context object passed to every node handler, providing access to simulation state and utilities.
+
+```typescript
+interface SimContext {
+  currentTime: number;                          // current simulated time in ms
+  getNode(nodeId: string): SimulationNode;      // look up any node by ID
+  getConnections(nodeId: string): Connection[];  // outbound connections from a node
+  scheduleEvent(event: Event): void;            // enqueue a new event
+  cancelEvent(eventId: string): void;           // cancel a pending event (e.g., timeout)
+  sampleLatency(dist: LatencyDistribution): number; // sample from a distribution
+  recordMetric(nodeId: string, metric: string, value: number): void; // record a metric
+  generateId(): string;                         // unique ID generator
+}
+```
+
 ### Simulation Loop
 
 1. Pop the next event from the priority queue.
 2. Advance simulated time to that event's timestamp.
 3. Dispatch the event to the target node's handler.
 4. The handler returns zero or more new events to enqueue.
-5. Stream completed transactions to the frontend via WebSocket.
+5. Buffer completed transactions for the next WebSocket frame (batched every 50ms wall-clock).
 6. Repeat.
+
+Two separate streaming cadences feed the frontend: **transaction events** are batched into frames every 50ms of wall-clock time, while **node metrics** (`NODE_STATE`) are computed and sent every 200ms of simulated time.
 
 ### Time Control
 
@@ -290,20 +327,17 @@ Frontend state is minimal — canvas layout (node positions, connections) and UI
 
 ---
 
-## 6. Backend Architecture & WebSocket Protocol
+## 6. Backend Architecture & Communication Protocol
 
 ### Backend Structure
 
 ```
 Next.js App
 ├── /app                    → Frontend pages & components
-├── /app/api/simulation     → REST endpoints for CRUD
-│   ├── POST /create        → Create simulation from canvas state
-│   ├── POST /start         → Start/resume simulation
-│   ├── POST /pause         → Pause simulation
-│   ├── POST /speed         → Change speed multiplier
-│   ├── POST /chaos         → Inject a failure event
+├── /app/api/simulation     → REST endpoints (setup & teardown only)
+│   ├── POST /create        → Create simulation from canvas state, returns simulationId
 │   └── GET  /state         → Get current simulation snapshot
+├── /server/ws.ts           → Custom WebSocket server (ws library)
 └── /lib/engine             → Simulation engine (runs in-process)
     ├── Engine              → Main loop, event queue, time control
     ├── EventQueue          → Min-heap priority queue
@@ -312,43 +346,72 @@ Next.js App
     └── distributions/      → Latency sampling (normal, exponential, uniform, lognormal)
 ```
 
-### WebSocket Protocol
+### WebSocket Implementation
 
-**Server to client:**
+Next.js API routes are request-response based and do not support persistent connections. The WebSocket server runs as a **custom server** using the `ws` library alongside Next.js. A custom `server.ts` wraps `next()` and attaches a `WebSocketServer` to the same HTTP server on a `/ws` path. This requires running via `node server.ts` (or `tsx server.ts`) instead of `next start`.
+
+**Deployment requirement:** The app must run as a persistent Node.js process (VM, container, or `node server.ts`). It is not compatible with serverless deployment (Vercel functions, AWS Lambda) because the simulation engine maintains in-memory state and requires long-lived WebSocket connections.
+
+### Communication Model
+
+REST is used only for simulation setup and teardown. All real-time communication (control commands and event streaming) goes through WebSocket. This avoids ambiguity about which channel is canonical for control.
+
+**Server to client (WebSocket):**
 
 | Message Type | Data | Purpose |
 |-------------|------|---------|
 | `TRANSACTION` | `Transaction` | A transaction completed |
-| `NODE_STATE` | `NodeStateUpdate` | Node metrics changed |
+| `NODE_STATE` | `NodeStateUpdate` | Node metrics changed (sent every 200ms of simulated time) |
 | `NODE_HEALTH` | `{ nodeId, status }` | Health status changed |
-| `SIM_STATUS` | `{ time, speed, running }` | Sim clock update |
+| `SIM_STATUS` | `{ time, speed, running }` | Sim clock update (sent every 50ms wall-clock) |
 | `ALERT` | `{ message, severity }` | Circuit open, queue full, etc. |
 
-**Client to server:**
+**Client to server (WebSocket):**
 
 | Message Type | Data | Purpose |
 |-------------|------|---------|
-| `UPDATE_CONFIG` | `{ nodeId, config }` | Tweak a knob mid-sim |
-| `INJECT_CHAOS` | `{ chaosType, target }` | Manual failure injection |
-| `SPEED` | `{ multiplier }` | Change simulation speed |
+| `START` | `{ simulationId }` | Start the simulation |
+| `STOP` | — | Stop and tear down the simulation |
 | `PAUSE` | — | Pause simulation |
 | `RESUME` | — | Resume simulation |
+| `SPEED` | `{ multiplier }` | Change simulation speed |
+| `UPDATE_CONFIG` | `{ nodeId, config }` | Tweak a knob mid-sim |
+| `INJECT_CHAOS` | `{ chaosType, target }` | Manual failure injection |
 
-### Event Batching
+### Event Batching & Backpressure
 
 At high request rates, the backend batches events into frames (every 50ms of wall-clock time) and sends them as an array. The frontend interpolates animations between frames.
+
+At the engine level, if the event queue grows beyond a high-water mark (e.g., 100,000 pending events), the engine processes events in microbatches using `setImmediate` to yield to the Node.js event loop between batches. This prevents event loop starvation at high speed multipliers.
 
 ### Simulation Lifecycle
 
 1. User builds canvas (frontend-only, no backend needed).
-2. User clicks "Run" — frontend sends canvas state + selected scenario via REST to `/create`, then `/start`.
-3. Backend instantiates the engine, begins the DES loop, streams events via WebSocket.
-4. User can pause, change speed, tweak configs, inject chaos via WebSocket messages.
-5. User clicks "Stop" — engine halts, final state snapshot is available.
+2. User clicks "Run" — frontend sends canvas state + selected scenario via REST `POST /create`, receives a `simulationId`.
+3. Frontend opens WebSocket connection, sends `START { simulationId }`.
+4. Backend instantiates the engine, begins the DES loop, streams events via WebSocket.
+5. User can pause, resume, change speed, tweak configs, inject chaos — all via WebSocket messages.
+6. User clicks "Stop" — frontend sends `STOP` via WebSocket, engine halts, server sends final `SIM_STATUS { running: false }` and closes the connection.
+
+### Canvas Modification During Simulation
+
+Modifying the canvas (adding/removing nodes or connections) while a simulation is running is not supported in v1. The user must stop the simulation, modify the canvas, and start a new one. The toolbar disables canvas editing while a simulation is active.
 
 ### Persistence
 
-For v1, simulation configurations (canvas layouts + node configs) are saved to localStorage on the frontend. No database needed. Backend is stateless between sessions.
+For v1, simulation configurations (canvas layouts + node configs) are saved to localStorage on the frontend as a JSON document conforming to the `SimulationConfig` schema:
+
+```typescript
+interface SimulationConfig {
+  version: 1;
+  name: string;
+  nodes: SimulationNode[];
+  connections: Connection[];
+  scenario: Scenario;
+}
+```
+
+No database needed. Backend is stateless between sessions.
 
 ---
 
