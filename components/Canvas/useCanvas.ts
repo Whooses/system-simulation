@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, type DragEvent, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useRef, type DragEvent, type Dispatch, type SetStateAction } from "react";
 import {
   addEdge,
   type Connection as RFConnection,
@@ -8,14 +8,13 @@ import {
   type Edge as RFEdge,
 } from "@xyflow/react";
 import { getNodeDefinition } from "@/lib/node-defaults";
-import { NodeType, type NodeConfig } from "@/lib/engine/models";
+import { NodeType } from "@/lib/engine/models";
 import { type NodeData } from "./Canvas.types";
 
 export function useCanvas(
   setNodes: Dispatch<SetStateAction<RFNode[]>>,
   setEdges: Dispatch<SetStateAction<RFEdge[]>>,
 ) {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const onConnect = useCallback(
@@ -57,31 +56,10 @@ export function useCanvas(
     [setNodes]
   );
 
-  const onNodeClick = useCallback((_: unknown, node: RFNode) => {
-    setSelectedNodeId(node.id);
-  }, []);
-
-  const updateNodeConfig = useCallback(
-    (id: string, config: Partial<NodeConfig>) => {
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (n.id !== id) return n;
-          const data = n.data as NodeData;
-          return { ...n, data: { ...data, config: { ...data.config, ...config } } };
-        })
-      );
-    },
-    [setNodes]
-  );
-
   return {
     wrapperRef,
     onConnect,
     onDragOver,
     onDrop,
-    onNodeClick,
-    selectedNodeId,
-    setSelectedNodeId,
-    updateNodeConfig,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { type Dispatch, type SetStateAction } from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { ReactFlow, Controls, Background, BackgroundVariant,
   type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -25,12 +25,11 @@ export default function Canvas({
   nodes, edges, onNodesChange, onEdgesChange,
   setNodes, setEdges, onNodeSelect,
 }: CanvasProps) {
-  const { wrapperRef, onConnect, onDragOver, onDrop, onNodeClick } = useCanvas(setNodes, setEdges);
+  const { wrapperRef, onConnect, onDragOver, onDrop } = useCanvas(setNodes, setEdges);
 
-  const handleNodeClick = (_: unknown, node: RFNode) => {
-    onNodeClick(_, node);
+  const handleNodeClick = useCallback((_: unknown, node: RFNode) => {
     onNodeSelect(node);
-  };
+  }, [onNodeSelect]);
 
   return (
     <main ref={wrapperRef} className="flex-1" onDragOver={onDragOver} onDrop={onDrop}>
