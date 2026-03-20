@@ -1,5 +1,19 @@
+// === Types ===
+
+/** Three-state circuit breaker: CLOSED (healthy), OPEN (tripped), HALF_OPEN (probing). */
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 
+// === Circuit Breaker ===
+
+/**
+ * Classic circuit breaker pattern for protecting downstream services.
+ *
+ * State transitions:
+ *   CLOSED → OPEN: after `failureThreshold` consecutive failures
+ *   OPEN → HALF_OPEN: after `resetTimeoutMs` elapses
+ *   HALF_OPEN → CLOSED: on first successful probe
+ *   HALF_OPEN → OPEN: on any failed probe
+ */
 export class CircuitBreaker {
   private _state: CircuitState = "CLOSED";
   private failureCount = 0;
@@ -19,11 +33,15 @@ export class CircuitBreaker {
     return this._state;
   }
 
+  // === Decision ===
+
+  /** Check if a request should be allowed through based on current state and time. */
   shouldAllow(currentTime: number): boolean {
     switch (this._state) {
       case "CLOSED":
         return true;
       case "OPEN":
+        // Transition to HALF_OPEN after the reset timeout elapses
         if (currentTime - this.lastFailureTime >= this.resetTimeoutMs) {
           this._state = "HALF_OPEN";
           this.probeCount = 0;
@@ -35,6 +53,9 @@ export class CircuitBreaker {
     }
   }
 
+  // === Recording ===
+
+  /** Record a request outcome and transition state accordingly. */
   recordResult(success: boolean, currentTime: number): void {
     if (this._state === "HALF_OPEN") {
       if (success) {
@@ -57,6 +78,7 @@ export class CircuitBreaker {
     }
   }
 
+  /** Reset to initial CLOSED state. */
   reset(): void {
     this._state = "CLOSED";
     this.failureCount = 0;

@@ -1,5 +1,9 @@
 import { Scenario } from "./engine/models";
 
+/**
+ * Built-in load-test scenarios available in the ScenarioPicker dropdown.
+ * Each scenario models a different traffic pattern (steady, ramp, spike, etc.).
+ */
 export const PREDEFINED_SCENARIOS: Scenario[] = [
   { id: "steady-state", name: "Steady State", description: "Constant 100 rps for 60s", duration: 60,
     phases: [{ startTime: 0, duration: 60, requestRate: 100, requestDistribution: [{ type: "GET /api/users", weight: 1 }] }] },

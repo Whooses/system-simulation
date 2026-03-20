@@ -1,5 +1,6 @@
 // === Enums ===
 
+/** Types of events flowing through the simulation's priority queue. */
 export enum EventType {
   REQUEST_ARRIVE = "REQUEST_ARRIVE",
   PROCESS_COMPLETE = "PROCESS_COMPLETE",
@@ -18,6 +19,7 @@ export enum EventType {
   RETRY = "RETRY",
 }
 
+/** Communication protocols between nodes. */
 export enum Protocol {
   HTTP = "HTTP",
   GRPC = "GRPC",
@@ -27,12 +29,14 @@ export enum Protocol {
   INTERNAL = "INTERNAL",
 }
 
+/** Tri-state health indicator tracked per node. */
 export enum HealthStatus {
   HEALTHY = "HEALTHY",
   DEGRADED = "DEGRADED",
   UNHEALTHY = "UNHEALTHY",
 }
 
+/** All infrastructure component types available on the canvas. */
 export enum NodeType {
   CLIENT = "CLIENT",
   DNS = "DNS",
@@ -51,6 +55,7 @@ export enum NodeType {
   API_GATEWAY = "API_GATEWAY",
 }
 
+/** Outcome status for a completed transaction. */
 export enum ResultStatus {
   SUCCESS = "SUCCESS",
   FAILURE = "FAILURE",
@@ -59,6 +64,7 @@ export enum ResultStatus {
 
 // === Latency Distribution ===
 
+/** Discriminated union of supported latency distribution configurations. */
 export type LatencyDistribution =
   | { type: "constant"; value: number }
   | { type: "normal"; mean: number; stddev: number }
@@ -68,12 +74,14 @@ export type LatencyDistribution =
 
 // === Core Data Types ===
 
+/** HTTP-like request message carried by a transaction. */
 export interface Message {
   method: string;
   path: string;
   payload?: unknown;
 }
 
+/** Outcome of a processed request (status code, latency, optional error). */
 export interface Result {
   status: ResultStatus;
   statusCode: number;
@@ -81,6 +89,7 @@ export interface Result {
   error?: string;
 }
 
+/** End-to-end request lifecycle — tracks a message from origin through the node graph. */
 export interface Transaction {
   id: string;
   message: Message;
@@ -90,6 +99,7 @@ export interface Transaction {
   metadata: Record<string, unknown>;
 }
 
+/** A single event in the simulation's priority queue, routed to a target node. */
 export interface SimEvent {
   id: string;
   timestamp: number;
@@ -101,6 +111,7 @@ export interface SimEvent {
 
 // === Connection ===
 
+/** A directed edge between two nodes with protocol, latency, and retry settings. */
 export interface Connection {
   id: string;
   sourceNodeId: string;
@@ -111,6 +122,7 @@ export interface Connection {
   retryConfig?: RetryConfig;
 }
 
+/** Exponential-backoff retry settings for a connection. */
 export interface RetryConfig {
   maxRetries: number;
   baseDelay: number;
@@ -120,6 +132,7 @@ export interface RetryConfig {
 
 // === Node Config (union per type) ===
 
+/** Shared configuration fields present on every node type. */
 export interface BaseNodeConfig {
   concurrencyLimit: number;
   maxQueueSize: number;
@@ -203,6 +216,7 @@ export interface APIGatewayConfig extends BaseNodeConfig {
   authLatency: LatencyDistribution;
 }
 
+/** Discriminated union of all node-specific config types. */
 export type NodeConfig =
   | ClientConfig
   | DNSConfig
@@ -220,6 +234,7 @@ export type NodeConfig =
 
 // === Node State ===
 
+/** Mutable runtime state for a simulation node, updated by handlers on each event. */
 export interface NodeState {
   queueDepth: number;
   activeConnections: number;
@@ -232,6 +247,7 @@ export interface NodeState {
 
 // === Simulation Node ===
 
+/** A single infrastructure component in the simulation graph. */
 export interface SimulationNode {
   id: string;
   type: NodeType;
@@ -244,6 +260,7 @@ export interface SimulationNode {
 
 // === Scenario ===
 
+/** A single load phase within a scenario (rate, duration, optional ramp-up). */
 export interface Phase {
   startTime: number;
   duration: number;
@@ -252,6 +269,7 @@ export interface Phase {
   requestDistribution: { type: string; weight: number }[];
 }
 
+/** A named load-test scenario consisting of one or more sequential phases. */
 export interface Scenario {
   id: string;
   name: string;
@@ -262,6 +280,7 @@ export interface Scenario {
 
 // === Simulation Config (for localStorage persistence) ===
 
+/** Serializable snapshot of a complete simulation setup, stored in localStorage. */
 export interface SimulationConfig {
   version: 1;
   name: string;
@@ -272,6 +291,7 @@ export interface SimulationConfig {
 
 // === WebSocket Messages ===
 
+/** Messages broadcast from the server to all connected clients. */
 export type ServerMessage =
   | { type: "TRANSACTION"; data: Transaction }
   | { type: "NODE_STATE"; data: { nodeId: string; state: NodeState } }
@@ -280,6 +300,7 @@ export type ServerMessage =
   | { type: "ALERT"; data: { message: string; severity: "info" | "warning" | "critical" } }
   | { type: "BATCH"; data: ServerMessage[] };
 
+/** Messages sent from a client to control the simulation. */
 export type ClientMessage =
   | { type: "START"; data: { simulationId: string } }
   | { type: "STOP" }

@@ -2,9 +2,24 @@ import { WebSocketServer, WebSocket } from "ws";
 import { SimulationManager } from "./simulation-manager";
 import { ClientMessage, SimulationNode, Connection, Scenario } from "../lib/engine/models";
 
-// Store pending configs from REST create
+// === Pending Config Store ===
+
+/**
+ * Holds simulation configs created via the REST endpoint until the
+ * client sends a WS START message to claim and run them.
+ * Keyed by simulationId, consumed once on START.
+ */
 export const pendingConfigs = new Map<string, { nodes: SimulationNode[]; connections: Connection[]; scenario: Scenario }>();
 
+// === WebSocket Server ===
+
+/**
+ * Create a WebSocket server attached to the given HTTP server.
+ *
+ * Each WS connection gets its own {@link SimulationManager}. The client
+ * controls the simulation lifecycle via typed {@link ClientMessage} frames.
+ * On disconnect, any running simulation is automatically stopped.
+ */
 export function createWSServer(server: import("http").Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -20,6 +35,7 @@ export function createWSServer(server: import("http").Server): WebSocketServer {
         const msg = JSON.parse(raw.toString()) as ClientMessage;
         switch (msg.type) {
           case "START": {
+            // Claim the pending config from the REST create endpoint
             const config = pendingConfigs.get(msg.data.simulationId);
             if (config) {
               manager = new SimulationManager(sendMessage);
@@ -39,6 +55,7 @@ export function createWSServer(server: import("http").Server): WebSocketServer {
       } catch (err) { console.error("WS message error:", err); }
     });
 
+    // Clean up simulation on disconnect
     ws.on("close", () => { manager?.stop(); manager = null; });
   });
 

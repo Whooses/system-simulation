@@ -4,6 +4,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { NodeType, HealthStatus } from "@/lib/engine/models";
 import { getNodeDefinition } from "@/lib/node-defaults";
 
+/** Runtime data displayed on each canvas node (merged from config + live state). */
 interface SimNodeData {
   label: string;
   nodeType: NodeType;
@@ -14,6 +15,11 @@ interface SimNodeData {
   queueDepth?: number;
 }
 
+/**
+ * Custom React Flow node rendering an infrastructure component.
+ * Displays the node label, health indicator dot, type, and live metrics
+ * (request count, error rate, latency, queue depth) when available.
+ */
 export default function SimNode({ data }: NodeProps) {
   const nodeData = data as unknown as SimNodeData;
   const def = getNodeDefinition(nodeData.nodeType);

@@ -5,6 +5,11 @@ import { NodeType } from "@/lib/engine/models";
 
 interface PaletteItemProps { type: NodeType; label: string; color: string; }
 
+/**
+ * A single draggable node type in the palette sidebar.
+ * Sets the node type on the drag data transfer so the canvas
+ * can create the correct node on drop.
+ */
 export default function PaletteItem({ type, label, color }: PaletteItemProps) {
   const onDragStart = (e: DragEvent) => {
     e.dataTransfer.setData("application/reactflow-type", type);

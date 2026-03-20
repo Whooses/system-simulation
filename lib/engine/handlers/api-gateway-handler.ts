@@ -2,8 +2,15 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, APIGatewayConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates an API gateway with rate limiting and auth latency.
+ *
+ * Enforces a per-node request rate limit using a sliding 1-second window.
+ * Requests that pass the rate limit incur auth latency before being
+ * forwarded to the first downstream backend.
+ */
 export class APIGatewayHandler implements NodeHandler {
-  // Track request counts per 1-second window per node
+  // === Rate Limiting State (1-second sliding window per node) ===
   private windowStart = new Map<string, number>();
   private windowCount = new Map<string, number>();
 

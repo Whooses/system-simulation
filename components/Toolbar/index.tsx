@@ -6,6 +6,8 @@ import ChaosMenu from "./ChaosMenu";
 import SaveLoad from "./SaveLoad";
 import type { Scenario, SimulationConfig } from "@/lib/engine/models";
 
+// === Types ===
+
 interface ToolbarProps {
   running: boolean;
   connected: boolean;
@@ -24,6 +26,10 @@ interface ToolbarProps {
   onLoad: (config: SimulationConfig) => void;
 }
 
+/**
+ * Header toolbar with simulation controls (Run/Pause/Stop), scenario picker,
+ * speed control, chaos injection menu, save/load, clock, and connection indicator.
+ */
 export default function Toolbar({
   running, connected, speed, time, selectedScenario,
   onRun, onPause, onResume, onStop, onSpeedChange, onScenarioSelect,

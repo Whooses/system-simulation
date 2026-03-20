@@ -2,6 +2,10 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, DNSConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates DNS resolution with configurable latency and failure rate.
+ * Returns a success or failure RESPONSE after resolution latency.
+ */
 export class DNSHandler implements NodeHandler {
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     if (event.type !== EventType.REQUEST_ARRIVE) return [];

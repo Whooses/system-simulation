@@ -1,3 +1,7 @@
+/**
+ * Public API for the simulation engine.
+ * Re-exports all types, the core engine, and supporting modules.
+ */
 export * from "./models";
 export { Engine } from "./engine";
 export { EventQueue } from "./event-queue";

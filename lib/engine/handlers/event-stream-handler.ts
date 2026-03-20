@@ -2,7 +2,14 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, EventStreamConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates a partitioned event stream (e.g., Kafka).
+ *
+ * Similar to MessageQueueHandler but adds partition assignment
+ * and consumer group lag to the dequeue delay.
+ */
 export class EventStreamHandler implements NodeHandler {
+  /** Internal event buffer per stream node. */
   private queues = new Map<string, SimEvent[]>();
 
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {

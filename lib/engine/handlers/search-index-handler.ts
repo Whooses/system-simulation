@@ -2,6 +2,10 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, SearchIndexConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates a search index (e.g., Elasticsearch).
+ * Processes queries with configurable latency and error rate.
+ */
 export class SearchIndexHandler implements NodeHandler {
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     const config = node.config as SearchIndexConfig;

@@ -9,6 +9,7 @@ interface ScenarioPickerProps {
   disabled?: boolean;
 }
 
+/** Dropdown selector for built-in load-test scenarios. */
 export default function ScenarioPicker({ selected, onSelect, disabled }: ScenarioPickerProps) {
   return (
     <div className="flex items-center gap-2">

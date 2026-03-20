@@ -1,3 +1,10 @@
+/**
+ * Custom server entry point.
+ *
+ * Starts a Node HTTP server that handles both Next.js pages/API routes
+ * and a WebSocket server (on /ws) for real-time simulation control.
+ * Run via `npm run dev:ws` or the production start script.
+ */
 import { createServer } from "http";
 import next from "next";
 import { createWSServer } from "./ws-server";

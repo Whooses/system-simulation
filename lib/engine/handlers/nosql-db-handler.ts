@@ -2,13 +2,25 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, NoSQLDBConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+// === Helpers ===
+
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+/** Determine if the event's transaction carries a write operation. */
 function isWriteRequest(event: SimEvent): boolean {
   const method = event.transaction?.message?.method?.toUpperCase();
   return method ? WRITE_METHODS.has(method) : false;
 }
 
+// === Handler ===
+
+/**
+ * Simulates a NoSQL database with partitioned concurrency.
+ *
+ * Concurrency limit scales with partition count (10 ops per partition).
+ * Uses separate read/write latency distributions and supports
+ * eventual or strong consistency models.
+ */
 export class NoSQLDBHandler implements NodeHandler {
   private queues = new Map<string, SimEvent[]>();
 

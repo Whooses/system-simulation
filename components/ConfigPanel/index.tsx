@@ -3,6 +3,8 @@
 import { NodeType, type NodeConfig, type BaseNodeConfig } from "@/lib/engine/models";
 import { getNodeDefinition } from "@/lib/node-defaults";
 
+// === Types ===
+
 interface NodeConfigPanelProps {
   nodeId: string;
   nodeType: NodeType;
@@ -11,6 +13,7 @@ interface NodeConfigPanelProps {
   onClose: () => void;
 }
 
+/** Describes a single editable field in the config panel. */
 interface ConfigField {
   key: string;
   label: string;
@@ -21,6 +24,9 @@ interface ConfigField {
   options?: { label: string; value: string }[];
 }
 
+// === Field Definitions ===
+
+/** Return the editable config fields for a given node type (base fields + type-specific extras). */
 function getFieldsForType(nodeType: NodeType): ConfigField[] {
   const base: ConfigField[] = [
     { key: "concurrencyLimit", label: "Concurrency Limit", type: "number", min: 1, max: 10000 },
@@ -68,6 +74,13 @@ function getFieldsForType(nodeType: NodeType): ConfigField[] {
   return [...base, ...(extra[nodeType] ?? [])];
 }
 
+// === Component ===
+
+/**
+ * Right sidebar panel for editing a selected node's configuration.
+ * Renders dynamic form fields based on the node type.
+ * Changes are applied immediately (live hot-patching if simulation is running).
+ */
 export default function NodeConfigPanel({ nodeId, nodeType, config, onConfigChange, onClose }: NodeConfigPanelProps) {
   const def = getNodeDefinition(nodeType);
   const fields = getFieldsForType(nodeType);

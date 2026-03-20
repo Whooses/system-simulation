@@ -8,9 +8,14 @@ interface TransactionLogProps {
   onRowClick?: (transaction: Transaction) => void;
 }
 
+/**
+ * Footer panel displaying a scrollable table of completed transactions.
+ * Auto-scrolls to the newest entry as transactions stream in from the server.
+ */
 export default function TransactionLog({ transactions, onRowClick }: TransactionLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom when new transactions arrive
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [transactions.length]);

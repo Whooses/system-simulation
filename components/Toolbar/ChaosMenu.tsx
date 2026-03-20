@@ -8,6 +8,11 @@ interface ChaosMenuProps {
   nodeIds: string[];
 }
 
+/**
+ * Dropdown menu for chaos engineering actions.
+ * Randomly selects a non-client node as the target and injects
+ * the chosen failure type via the simulation WebSocket.
+ */
 export default function ChaosMenu({ disabled, onInjectChaos, nodeIds }: ChaosMenuProps) {
   const [open, setOpen] = useState(false);
 

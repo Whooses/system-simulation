@@ -14,6 +14,11 @@ import { ObjectStorageHandler } from "./object-storage-handler";
 import { SearchIndexHandler } from "./search-index-handler";
 import { EventStreamHandler } from "./event-stream-handler";
 
+/**
+ * Bootstrap function that wires every node type to its handler.
+ * Must be called once before the engine processes any events.
+ * Note: MICROSERVICE reuses WebServerHandler (same request/response behavior).
+ */
 export function registerAllHandlers(): void {
   registerHandler(NodeType.CLIENT, new ClientHandler());
   registerHandler(NodeType.WEB_SERVER, new WebServerHandler());

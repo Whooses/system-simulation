@@ -2,6 +2,13 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, CDNConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates a CDN edge node with probabilistic cache hits.
+ *
+ * On hit: returns CACHE_HIT with edge latency.
+ * On miss: forwards to origin (first outbound connection) or
+ * returns CACHE_MISS with fallback latency if no origin is wired.
+ */
 export class CDNHandler implements NodeHandler {
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     if (event.type !== EventType.REQUEST_ARRIVE) return [];

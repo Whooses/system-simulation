@@ -3,6 +3,10 @@
 import { NODE_DEFINITIONS } from "@/lib/node-defaults";
 import PaletteItem from "./PaletteItem";
 
+/**
+ * Sidebar palette listing all available node types grouped by category.
+ * Each item is draggable — drop onto the canvas to create a new node.
+ */
 export default function NodePalette() {
   const categories = [...new Set(NODE_DEFINITIONS.map((d) => d.category))];
   return (

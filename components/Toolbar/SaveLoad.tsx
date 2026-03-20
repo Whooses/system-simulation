@@ -10,6 +10,7 @@ interface SaveLoadProps {
   disabled?: boolean;
 }
 
+/** Save/Load buttons with inline popover for naming and selecting saved configs. */
 export default function SaveLoad({ onSave, onLoad, disabled }: SaveLoadProps) {
   const { list, load } = usePersistence();
   const [showSave, setShowSave] = useState(false);

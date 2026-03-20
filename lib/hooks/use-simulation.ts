@@ -3,6 +3,9 @@
 import { useCallback, useRef, useState } from "react";
 import type { ServerMessage, ClientMessage, Transaction, NodeState } from "@/lib/engine/models";
 
+// === Types ===
+
+/** Client-side simulation state aggregated from WebSocket messages. */
 interface SimulationState {
   running: boolean;
   time: number;
@@ -12,6 +15,18 @@ interface SimulationState {
   alerts: { message: string; severity: string }[];
 }
 
+// === Hook ===
+
+/**
+ * WebSocket client hook for real-time simulation control.
+ *
+ * Manages the WS connection lifecycle and merges incoming server
+ * messages (SIM_STATUS, NODE_STATE, TRANSACTION, BATCH, ALERT)
+ * into a single reactive {@link SimulationState}.
+ *
+ * Exposes convenience methods for start/stop/pause/resume/speed
+ * that send typed {@link ClientMessage} frames over the socket.
+ */
 export function useSimulation() {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -20,6 +35,9 @@ export function useSimulation() {
     nodeStates: new Map(), transactions: [], alerts: [],
   });
 
+  // === Message Handling ===
+
+  /** Route incoming server messages to the appropriate state updater. */
   const handleMessage = useCallback((msg: ServerMessage) => {
     switch (msg.type) {
       case "SIM_STATUS":
@@ -33,17 +51,23 @@ export function useSimulation() {
         });
         break;
       case "TRANSACTION":
+        // Keep last 1000 transactions to avoid unbounded memory growth
         setState((s) => ({ ...s, transactions: [...s.transactions.slice(-999), msg.data as Transaction] }));
         break;
       case "BATCH":
+        // Recursively handle each message in the batch
         for (const inner of msg.data) handleMessage(inner);
         break;
       case "ALERT":
+        // Keep last 50 alerts
         setState((s) => ({ ...s, alerts: [...s.alerts.slice(-49), msg.data] }));
         break;
     }
   }, []);
 
+  // === Connection Lifecycle ===
+
+  /** Open a WebSocket connection to the simulation server. */
   const connect = useCallback(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}/ws`);
     ws.onopen = () => setConnected(true);
@@ -52,6 +76,9 @@ export function useSimulation() {
     wsRef.current = ws;
   }, [handleMessage]);
 
+  // === Commands ===
+
+  /** Send a typed client message over the WebSocket. */
   const send = useCallback((msg: ClientMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify(msg));
   }, []);

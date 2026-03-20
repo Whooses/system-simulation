@@ -1,18 +1,27 @@
 import { NodeType, type NodeConfig, type BaseNodeConfig } from "./engine/models";
 
+// === Types ===
+
+/** Metadata and default configuration for a draggable node type on the palette. */
 interface NodeDefinition {
   type: NodeType;
   label: string;
+  /** Palette grouping (Entry, Compute, Database, etc.). */
   category: string;
+  /** Hex color used for the node's visual representation on the canvas. */
   color: string;
   defaultConfig: NodeConfig;
 }
 
+// === Defaults ===
+
+/** Shared baseline config applied to all node types before specialization. */
 const base: BaseNodeConfig = {
   concurrencyLimit: 100, maxQueueSize: 1000,
   processingLatency: { type: "constant", value: 5 }, errorRate: 0,
 };
 
+/** Registry of all available node types with their palette metadata and default configs. */
 export const NODE_DEFINITIONS: NodeDefinition[] = [
   { type: NodeType.CLIENT, label: "Client", category: "Entry", color: "#6366f1",
     defaultConfig: { ...base, requestRate: 10, requestDistribution: [{ type: "GET /api", weight: 1 }] } },
@@ -44,6 +53,7 @@ export const NODE_DEFINITIONS: NodeDefinition[] = [
     defaultConfig: { ...base, rateLimit: 1000, authLatency: { type: "constant", value: 3 } } },
 ];
 
+/** Look up a node definition by type (used when dropping a node onto the canvas). */
 export function getNodeDefinition(type: NodeType): NodeDefinition | undefined {
   return NODE_DEFINITIONS.find((d) => d.type === type);
 }

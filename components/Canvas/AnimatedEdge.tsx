@@ -1,5 +1,9 @@
 import { BaseEdge, getBezierPath, type EdgeProps } from "@xyflow/react";
 
+/**
+ * Custom React Flow edge with an animated green dot traveling along the path.
+ * Provides a visual indication of data flowing between connected nodes.
+ */
 export default function AnimatedEdge({
   id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, markerEnd,
 }: EdgeProps) {

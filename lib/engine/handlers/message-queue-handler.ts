@@ -2,7 +2,15 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, MessageQueueConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates a message queue (e.g., RabbitMQ, SQS).
+ *
+ * Producers enqueue via REQUEST_ARRIVE (→ QUEUE_ENQUEUE ack with 202).
+ * A deferred QUEUE_DEQUEUE event drains the queue and forwards to
+ * the first downstream consumer connection.
+ */
 export class MessageQueueHandler implements NodeHandler {
+  /** Internal message buffer per queue node. */
   private queues = new Map<string, SimEvent[]>();
 
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {

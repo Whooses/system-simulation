@@ -2,13 +2,22 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, ObjectStorageConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+// === Helpers ===
+
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+/** Determine if the event's transaction carries a write operation. */
 function isWriteRequest(event: SimEvent): boolean {
   const method = event.transaction?.message?.method?.toUpperCase();
   return method ? WRITE_METHODS.has(method) : false;
 }
 
+// === Handler ===
+
+/**
+ * Simulates blob/object storage (e.g., S3) with separate read/write latencies.
+ * No concurrency limit — throughput-limited storage.
+ */
 export class ObjectStorageHandler implements NodeHandler {
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     const config = node.config as ObjectStorageConfig;

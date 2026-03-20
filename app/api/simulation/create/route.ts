@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * POST /api/simulation/create
+ *
+ * Accepts a simulation topology (nodes, connections, scenario) and
+ * returns a unique simulationId. The client then sends a WS START
+ * message with this ID to begin the simulation.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

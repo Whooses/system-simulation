@@ -8,8 +8,12 @@ import SimNode from "./SimNode";
 import AnimatedEdge from "./AnimatedEdge";
 import { useCanvas } from "./useCanvas";
 
+// === Custom Node/Edge Registration ===
+
 const nodeTypes = { simNode: SimNode };
 const edgeTypes = { animated: AnimatedEdge };
+
+// === Types ===
 
 interface CanvasProps {
   nodes: RFNode[];
@@ -21,6 +25,10 @@ interface CanvasProps {
   onNodeSelect: (node: RFNode | undefined) => void;
 }
 
+/**
+ * Interactive node-graph canvas powered by React Flow.
+ * Supports drag-and-drop node creation, edge wiring, and node selection.
+ */
 export default function Canvas({
   nodes, edges, onNodesChange, onEdgesChange,
   setNodes, setEdges, onNodeSelect,

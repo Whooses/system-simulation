@@ -2,8 +2,18 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, SQLDBConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Simulates a SQL database with a bounded connection pool.
+ *
+ * Requests are processed if a pool slot is available, otherwise queued.
+ * When the pool and queue are both full, returns a 503 (pool exhausted).
+ * Uses configurable query latency distribution and error rate.
+ */
 export class SQLDBHandler implements NodeHandler {
+  /** Per-node overflow queues for requests waiting for a pool slot. */
   private queues = new Map<string, SimEvent[]>();
+
+  // === Event Dispatch ===
 
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     const config = node.config as SQLDBConfig;
@@ -14,6 +24,9 @@ export class SQLDBHandler implements NodeHandler {
     }
   }
 
+  // === Request Handling ===
+
+  /** Accept, queue, or reject based on connection pool availability. */
   private handleRequest(node: SimulationNode, event: SimEvent, context: SimContext, config: SQLDBConfig): SimEvent[] {
     if (node.state.activeConnections < config.connectionPoolSize) return this.startQuery(node, event, context, config);
     const queue = this.getQueue(node.id);
@@ -23,6 +36,7 @@ export class SQLDBHandler implements NodeHandler {
       transaction: event.transaction ? { ...event.transaction, result: { status: ResultStatus.FAILURE, statusCode: 503, latency: 0, error: "Connection pool exhausted" } } : null }];
   }
 
+  /** Claim a pool slot and schedule PROCESS_COMPLETE after query latency. */
   private startQuery(node: SimulationNode, event: SimEvent, context: SimContext, config: SQLDBConfig): SimEvent[] {
     node.state.activeConnections++; node.state.requestCount++;
     const queryTime = context.sampleLatency(config.queryLatency);
@@ -30,6 +44,9 @@ export class SQLDBHandler implements NodeHandler {
       transaction: event.transaction ? { ...event.transaction, metadata: { ...event.transaction.metadata, replyTo: event.sourceNodeId } } : null }];
   }
 
+  // === Completion ===
+
+  /** Release pool slot, reply to sender, and drain the next queued request. */
   private handleComplete(node: SimulationNode, event: SimEvent, context: SimContext, config: SQLDBConfig): SimEvent[] {
     node.state.activeConnections--;
     const events: SimEvent[] = [];

@@ -12,7 +12,18 @@ import Toolbar from "@/components/Toolbar";
 import TransactionLog from "@/components/TransactionLog";
 import NodeConfigPanel from "@/components/ConfigPanel";
 
+/**
+ * Top-level orchestration component — owns all shared state and
+ * composes the full simulator UI: toolbar, palette, canvas, config panel, and log.
+ *
+ * Responsible for:
+ * - WebSocket connection lifecycle
+ * - Building topology from canvas nodes/edges and initiating simulation runs
+ * - Routing config changes and chaos injection to the WS server
+ */
 export default function SimulatorLayout() {
+  // === State ===
+
   const { connected, state, connect, disconnect, start, stop, pause, resume, setSpeed, send } = useSimulation();
   const [nodes, setNodes, onNodesChange] = useNodesState([] as RFNode[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as RFEdge[]);
@@ -20,12 +31,16 @@ export default function SimulatorLayout() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
-  // Connect WebSocket on mount, disconnect on unmount
+  // === WebSocket Lifecycle ===
+
   useEffect(() => {
     connect();
     return () => disconnect();
   }, [connect, disconnect]);
 
+  // === Simulation Control ===
+
+  /** Build topology from canvas state, POST to create endpoint, then start via WS. */
   const handleRun = useCallback(async () => {
     if (!selectedScenario || nodes.length === 0) return;
 
@@ -40,6 +55,9 @@ export default function SimulatorLayout() {
     start(simulationId);
   }, [nodes, edges, selectedScenario, start]);
 
+  // === Config & Chaos ===
+
+  /** Update a node's config locally and, if running, push the change to the server. */
   const handleConfigChange = useCallback((id: string, config: Partial<NodeConfig>) => {
     setNodes((nds) =>
       nds.map((n) => {
@@ -68,6 +86,8 @@ export default function SimulatorLayout() {
   }, []);
 
   const nodeIds = useMemo(() => nodes.map((n) => n.id), [nodes]);
+
+  // === Layout ===
 
   return (
     <div className="flex h-screen w-screen flex-col bg-zinc-950 text-zinc-100">

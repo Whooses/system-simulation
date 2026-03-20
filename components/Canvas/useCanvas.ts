@@ -11,6 +11,12 @@ import { getNodeDefinition } from "@/lib/node-defaults";
 import { NodeType } from "@/lib/engine/models";
 import { type NodeData } from "./Canvas.types";
 
+/**
+ * Hook that encapsulates canvas interaction logic:
+ * - Edge connection via onConnect
+ * - Drag-over handling for palette items
+ * - Drop handling: creates a new SimNode at the drop position
+ */
 export function useCanvas(
   setNodes: Dispatch<SetStateAction<RFNode[]>>,
   setEdges: Dispatch<SetStateAction<RFEdge[]>>,

@@ -2,8 +2,21 @@ import { NodeHandler } from "./handler";
 import { SimulationNode, SimEvent, EventType, ResultStatus, BaseNodeConfig } from "../models";
 import { SimContext } from "../sim-context";
 
+/**
+ * Handles WEB_SERVER and MICROSERVICE nodes.
+ *
+ * Implements a bounded concurrency model: incoming requests are processed
+ * immediately if under the concurrency limit, otherwise queued up to
+ * maxQueueSize. Excess requests get a 503 response.
+ *
+ * Uses a self-targeted PROCESS_COMPLETE event to simulate processing time,
+ * then replies to the original sender via the `replyTo` metadata field.
+ */
 export class WebServerHandler implements NodeHandler {
+  /** Per-node overflow queues for requests that exceed the concurrency limit. */
   private queues = new Map<string, SimEvent[]>();
+
+  // === Event Dispatch ===
 
   onEvent(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     const config = node.config as BaseNodeConfig;
@@ -14,6 +27,9 @@ export class WebServerHandler implements NodeHandler {
     }
   }
 
+  // === Request Handling ===
+
+  /** Accept, queue, or reject a request based on concurrency/queue limits. */
   private handleRequest(node: SimulationNode, event: SimEvent, context: SimContext, config: BaseNodeConfig): SimEvent[] {
     if (node.state.activeConnections < config.concurrencyLimit) {
       return this.startProcessing(node, event, context, config);
@@ -24,6 +40,7 @@ export class WebServerHandler implements NodeHandler {
       node.state.queueDepth = queue.length;
       return [];
     }
+    // Both concurrency slots and queue are full — shed load
     node.state.errorCount++;
     return [{
       id: context.generateId(), timestamp: context.currentTime, type: EventType.RESPONSE,
@@ -32,6 +49,7 @@ export class WebServerHandler implements NodeHandler {
     }];
   }
 
+  /** Claim a concurrency slot and schedule a PROCESS_COMPLETE after processing latency. */
   private startProcessing(node: SimulationNode, event: SimEvent, context: SimContext, config: BaseNodeConfig): SimEvent[] {
     node.state.activeConnections++;
     node.state.requestCount++;
@@ -43,6 +61,9 @@ export class WebServerHandler implements NodeHandler {
     }];
   }
 
+  // === Completion ===
+
+  /** Release the concurrency slot, reply to sender, and drain the next queued request. */
   private handleProcessComplete(node: SimulationNode, event: SimEvent, context: SimContext): SimEvent[] {
     const config = node.config as BaseNodeConfig;
     node.state.activeConnections--;
@@ -57,6 +78,7 @@ export class WebServerHandler implements NodeHandler {
       });
     }
     if (isError) node.state.errorCount++;
+    // Drain next queued request if any
     const queue = this.getQueue(node.id);
     if (queue.length > 0) {
       const next = queue.shift()!;
